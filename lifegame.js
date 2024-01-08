@@ -2,8 +2,8 @@ let cellArr = []; // Инициализация массива ячеек
 let player = [];
 let cellSize = 3; // Размер ячейки
 let gridSize = 400; // размер поля
-let eatCount = 30000; // количество еды на старте
-let bonusCount = 100; // количество бонусов
+let eatCount = 50000; // количество еды на старте
+let bonusCount = 10000; // количество бонусов
 let speed = 20; // скорость хода
 let evolution = true; //режим эволюции
 const Rand = {
@@ -13,50 +13,42 @@ const Rand = {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
   };
+colorArr = [
+    "#c5c2c1", //Пустота
+    "#0d5906", //Еда
+    "#727607", //Бонус
+    "", //резерв
+    "",//резерв
+    "",//резерв
+    "",//резерв
+    "",//резерв
+    "",//резерв
+    "",//резерв
+    "blue", //игрок1
+    "green", //игрок2
+    "black", //игрок3
+    "red" //игрок4
 
-  class Cell {
-    constructor(size, x, y, id, state) {
+];
+scoreArr=[];
+class Cell { //класс отрисовки клеток
+    constructor(size, x, y, state) {
         this.width = size;
         this.height = size;
-        this.id = id;
-        this.state = Number(state);
-        this.colour = this.getColor(this.state);
+        this.state = state;
         this.x = x;
         this.y = y;
-        this.drow();
     }
-
-    setState(state) {
-        this.state = state;
-    }
-
-    getColor(state) {
-        let colourArr = [
-            "#c5c2c1",
-            "#0d5906",
-            "#727607",
-            "blue",
-            "green",
-            "black",
-            "red"
-        ];
-        return colourArr[state];
-    }
-
-    drow() {
+    draw() { //рисуем заданную клетку
         const canvas = document.getElementById("myCanvas");
         const ctx = canvas.getContext("2d");
         ctx.beginPath();
         ctx.rect(this.x, this.y, this.width, this.height);
-        ctx.fillStyle = this.getColor(this.state);
+        ctx.fillStyle = colorArr[this.state];
         ctx.strokeStyle = 'green';
         ctx.strokeRect(this.x, this.y, this.width, this.height);
         ctx.fill();
         ctx.closePath();
-    }
-
-    refresh() {
-        this.drow();
     }
 }
 class Player {
@@ -76,7 +68,6 @@ class Player {
     constructor(strength, id, nickname, child = false, x, y, maxHp = 1, atc = 1, def = 1, move = 1) {
         this.id = id;
         this.nickname = nickname;
-        this.color = cellArr[0][0].getColor(id);
         if(child)
         {
             this.row = x;
@@ -91,7 +82,9 @@ class Player {
             this.spawn();
         }
         this.generateCharacter(strength);
-        console.log(`Здрайствуйте я: ${this.nickname}, цвет ${this.color}, Характеристика такова: Жизни = ${this.maxHp} Защита = ${this.def} Атака = ${this.atc} Шаг = ${this.move}`);
+        console.log(`Здрайствуйте я: ${this.nickname}, цвет ${colorArr[this.id]}, Характеристика такова: Жизни = ${this.maxHp} Защита = ${this.def} Атака = ${this.atc} Шаг = ${this.move}`);
+        scoreArr[id] = [];
+        scoreArr[id][0] = 1;
     }
 
     generateCharacter(strength) {
@@ -113,7 +106,6 @@ class Player {
             }
             strength--;
         } while (strength > 0);
-        this.hp = this.maxHp;
         
     }
     abyl()
@@ -156,7 +148,6 @@ class Player {
         cellArr[x][y].state = this.id;
         this.score += 40;
         this.generateCharacter(1);
-        console.log(`Я - ${this.nickname}, цвет - ${this.color}, нихуясебе это что магия?`);
         this.row = x;
         this.col = y;
     }
@@ -165,18 +156,11 @@ class Player {
         let foundPlayer = player.find(player => player.row === x && player.col === y);
         if (foundPlayer) {
             console.log(`Игрок ${foundPlayer.nickname} в жуткой опасности. Похоже ${this.nickname} собирается нанести удар`);
-            console.log("*Проверка удачи*");
-            let roll = Rand.get(0, 100);
             let attackCalk = foundPlayer.def-this.atc;
             if(attackCalk<0) 
             {
                 this.step();
                 return;
-            }
-            if(roll <= 30)
-            {
-                console.log("НЕВЕРОЯТНО!!! КРИТИЧЕСКОЕ ПОПАДАНИЕ!!!");
-                attackCalk *=4;
             }
             foundPlayer.hp -= this.atc;
             if (foundPlayer.hp <= 0)
@@ -188,7 +172,7 @@ class Player {
         }
     }
     step()
-    {
+    { 
         do {
             let directions = [
                 { row: -Rand.get(0,this.move), col: 0 }, // Вверх
@@ -227,6 +211,8 @@ class Player {
         console.log(`Я - ${this.nickname}, цвет - ${this.color}: Ну всё тю-тю малина =(    Очки: ${this.score}`);
         this.isLive = false;
         cellArr[this.row][this.col].state = 0;
+        scoreArr[this.id][0] -= 1;
+        scoreArr[this.id][1] += this.score;
     }
     scan() {
         if(this.isLive)
@@ -279,13 +265,13 @@ class Player {
         
     }
 }
-function createGrid() {
+function createGrid() { // создаем поле
     for (let i = 0; i < gridSize; i++) {
-        cellArr[i] = []; // Инициализация внутренних массивов
+        cellArr[i] = []; 
         for (let j = 0; j < gridSize; j++) {
             let currentX = j * cellSize; // Вычисляем координату X для текущей ячейки
             let currentY = i * cellSize; // Вычисляем координату Y для текущей ячейки
-            cellArr[i][j] = new Cell(cellSize, currentX, currentY, i * gridSize + j, 0); // Сохраняем в двумерный массив
+            cellArr[i][j] = new Cell(cellSize, currentX, currentY, 0); // Сохраняем в двумерный массив
         }
     }
 }
@@ -293,13 +279,12 @@ function generateEat(amountEat) {
     do {
         let row = Rand.get(0, gridSize - 1);
         let col = Rand.get(0, gridSize - 1);
-        if (cellArr[row][col].state === 0) {
+        if (cellArr[row][col].state == 0) {
             cellArr[row][col].state = 1;
             amountEat--;
         }
     } while (amountEat > 0);
 }
-
 function generateBonus(amountBonus) {
     do {
         let row = Rand.get(0, gridSize - 1);
@@ -317,30 +302,31 @@ canvas.height = cellSize*gridSize;
 createGrid();
 generateEat(eatCount);
 generateBonus(bonusCount);
-player[0] = new Player(5, 3, "Солевой");
-player[1] = new Player(5, 4, "Эпилептик");
-player[2] = new Player(5, 5, "Торчок");
-player[3] = new Player(5, 6, "Бруль");
+player[0] = new Player(5, 10, "Солевой");
+player[1] = new Player(5, 11, "Эпилептик");
+player[2] = new Player(5, 12, "Торчок");
+player[3] = new Player(5, 13, "Бруль");
 function move()
 {
     for(let i = 0; i<player.length; i++)
     {
         player[i].scan()
     }
+    
 }
 
-function draw() {
+function refresh() {
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     move();
     for (let i = 0; i < cellArr.length; i++) {
         for (let j = 0; j < cellArr[i].length; j++) {
-            cellArr[i][j].refresh();
+            cellArr[i][j].draw();
         }
     }
 
 }
 
-setInterval(draw, speed);
+setInterval(refresh, speed);
         //return colourArr[Math.floor(Math.random() * colourArr.length)];
         
